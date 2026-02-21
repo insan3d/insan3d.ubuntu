@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/meta.json
+---
+galaxy_info:
+  author: apozlevich@gmail.com
+  license: MIT
+  role_name: pro
+  description: Manages Ubuntu Pro client
+  min_ansible_version: "2.20"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble

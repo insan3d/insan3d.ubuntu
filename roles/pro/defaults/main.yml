@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/vars.json
+---
+pro_token: ""
+pro_services_enable: []
+pro_services_disable: []

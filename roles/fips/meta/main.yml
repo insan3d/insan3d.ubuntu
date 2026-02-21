@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/meta.json
+---
+galaxy_info:
+  author: apozlevich@gmail.com
+  license: MIT
+  role_name: fips
+  description: Manages Ubuntu FIPS-complience state
+  min_ansible_version: "2.20"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+
+dependencies:
+  - role: insan3d.ubuntu.pro

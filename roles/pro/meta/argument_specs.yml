@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/role-arg-spec.json
+---
+argument_specs:
+  main:
+    short_description: Ensures Ubuntu Pro client is configured
+    version_added: 1.0.0
+    description:
+      - Installs C(ubuntu-advantage-tools) package.
+
+      - Connects Ubuntu Pro with provided token
+
+    seealso:
+      - name: Ubuntu Pro documentation
+        description: Canonical documentation about Ubuntu Pro
+        link: https://documentation.ubuntu.com/pro/
+
+      - name: Ubuntu Pro overview
+        description: Main page about Pro
+        link: https://ubuntu.com/pro
+
+      - name: Attachment tutorial
+        description: Detailed documentation about attachment procedure
+        link: https://documentation.ubuntu.com/pro/attach-tutorial/
+
+    options:
+      pro_token:
+        type: str
+        required: false
+        description: >
+          Specify your Ubuntu Pro token. Required when state=attached or when enabling/disabling services.
+
+      pro_services_enable:
+        type: list
+        elements: str
+        default: []
+        description: >
+          List of Ubuntu Pro services to enable.
+
+      pro_services_disable:
+        type: list
+        elements: str
+        default: []
+        description: >
+          List of Ubuntu Pro services to disable.

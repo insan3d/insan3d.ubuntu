@@ -1,0 +1,20 @@
+---
+namespace: insan3d
+name: ubuntu
+version: 1.0.0
+authors:
+  - apozlevich@gmail.com
+
+description: Ansible collection for managing Ubuntu Pro and FIPS compliance
+readme: README.md
+license:
+  - MIT
+
+repository: https://github.com/insan3d/insan3d.ubuntu
+documentation: https://github.com/insan3d/insan3d.ubuntu/blob/main/README.md
+issues: https://github.com/insan3d/insan3d.ubuntu/issues
+
+tags:
+  - ubuntu
+  - fips
+  - security

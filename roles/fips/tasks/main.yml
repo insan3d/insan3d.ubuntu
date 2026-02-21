@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/tasks.json
+---
+- name: Ensure FIPS kernel and packages are installed
+  when: fips_status == "frozen"
+  register: _fips_result
+  insan3d.ubuntu.pro:
+    enabled:
+      - fips
+
+    disabled:
+      - livepatch
+
+- name: Ensure FIPS kernel and packages are installed
+  when: fips_status == "latest"
+  register: _fips_result
+  insan3d.ubuntu.pro:
+    enabled:
+      - fips-updates
+
+- name: Ensure FIPS kernel and packages are removed
+  when: fips_status == "absent"
+  register: _fips_result
+  insan3d.ubuntu.pro:
+    disabled:
+      - fips
+      - fips-updates
+
+- name: Check if reboot is required
+  register: fips_reboot_required
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+
+- name: Schedule machine reboot if needed
+  when: fips_reboot_required.stat.exists
+  notify:
+    - Reboot machine
+    - Validate FIPS is enabled
+    - Validate FIPS is disabled
+
+  changed_when: true
+  ansible.builtin.debug:
+    msg: System will be rebooted due to FIPS changes

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/tasks.json
+---
+- name: Ensure Ubuntu Pro client is installed
+  ansible.builtin.apt:
+    package: ubuntu-advantage-tools
+    state: present
+    cache_valid_time: "{{ apt_cache_validity_time | default(60 * 60 * 24) }}"
+
+- name: Ensure Ubuntu Pro client is attached
+  insan3d.ubuntu.pro:
+    state: attached
+    token: "{{ pro_token }}"
+    enabled: "{{ pro_services_enable }}"
+    disabled: "{{ pro_services_disable }}"
+
+- name: Check if reboot is required
+  register: pro_reboot_required
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+
+- name: Schedule machine reboot if needed
+  when: pro_reboot_required.stat.exists
+  notify: Reboot machine
+  changed_when: true
+  ansible.builtin.debug:
+    msg: System will be rebooted due to Ubuntu Pro changes

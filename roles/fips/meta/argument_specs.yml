@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/role-arg-spec.json
+---
+argument_specs:
+  main:
+    short_description: Manages FIPS 140-2 and FIPS 140-3 certified kernel and packages
+    version_added: 1.0.0
+
+    description:
+      - Manages FIPS 140-2 and FIPS 140-3 certified kernel and packages.
+
+    seealso:
+      - name: Ubuntu FIPS documentation
+        description: Detailed documentation about Ubuntu FIPS compliance.
+        link: https://ubuntu.com/security/fips
+
+      - name: Ubuntu FIPS guide
+        description: Detailed description of manual installation.
+        link: https://ubuntu.com/tutorials/using-the-ubuntu-pro-client-to-enable-fips
+
+    options:
+      fips_status:
+        type: str
+        default: latest
+        choices:
+          - latest
+          - frozen
+          - absent
+
+        description:
+          - Select current FIPS-compliant packages state.
+
+          - C(latest) installs C(fips-updates) Ubuntu Pro service, which
+            provides latest pached packages and allows C(livepatch) service to
+            function.
+
+          - C(frozen) installs C(fips) Ubuntu Pro service, which provides latest
+            frozen release of FIPS-compliant packages what being updated once in
+            five months. This disables C(livepatch) service.
+
+          - C(absent) state removes FIPS-compliant packages and disables related
+            Ubuntu Pro services.

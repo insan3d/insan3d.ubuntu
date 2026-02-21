@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/tasks.json
+---
+- name: Reboot machine
+  ansible.builtin.reboot:
+    pre_reboot_delay: 1
+    msg: Reboot initiated by Ansible
