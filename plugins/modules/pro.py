@@ -47,10 +47,10 @@ options:
 
 EXAMPLES = r"""
 - name: Return Ubuntu Pro status only
-  ubuntu_pro:
+  insan3d.ubuntu.pro:
 
 - name: Attach and enable selected services
-  ubuntu_pro:
+  insan3d.ubuntu.pro:
     state: attached
     token: "{{ pro_token }}"
     enabled:
