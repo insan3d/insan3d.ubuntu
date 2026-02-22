@@ -110,6 +110,11 @@ disable_result:
   description: Parsed JSON output from C(pro disable) if executed.
   type: dict
   returned: when changed
+
+livepatch_status:
+  description: Parsed JSON from C(canonical-livepatch status --format=json) if livepatch is enabled.
+  type: dict
+  returned: when livepatch is enabled
 """
 
 
@@ -306,6 +311,45 @@ def _maybe_disable_services(
     return True
 
 
+def _get_livepatch_status(
+    module: AnsibleModule,
+) -> dict[str, Any] | None:
+    """
+    Get livepatch status if available.
+
+    Returns:
+        Parsed C(canonical-livepatch status --format=json) output or None if not available.
+    """
+
+    canonical_livepatch = module.get_bin_path("canonical-livepatch")  # pyright: ignore[reportUnknownVariableType, reportAssignmentType, reportUnknownMemberType]
+    if not canonical_livepatch:
+        return None
+
+    livepatch_status, _, _ = _execute(module, [canonical_livepatch, "status", "--format=json"])  # pyright: ignore[reportUnknownArgumentType]
+    return livepatch_status
+
+
+def _check_livepatch_status(
+    module: AnsibleModule,
+    result: dict[str, Any],
+    to_enable: list[str],
+) -> None:
+    """
+    Check livepatch status if it is or will be enabled.
+
+    Args:
+        module: Ansible module instance used to execute the command.
+        result: Result dict to populate with livepatch status if available.
+        to_enable: List of services to enable.
+    """
+
+    current_enabled = _collect_enabled_services(result.get("status")) if isinstance(result.get("status"), dict) else set()  # pyright: ignore[reportUnknownVariableType]
+    if "livepatch" in current_enabled or "livepatch" in to_enable:
+        livepatch_status = _get_livepatch_status(module)
+        if livepatch_status:
+            result["livepatch_status"] = livepatch_status
+
+
 def main() -> None:  # noqa: C901, PLR0914
     """Ansible module to manage Ubuntu Pro services with the `pro` CLI."""
 
@@ -383,6 +427,8 @@ def main() -> None:  # noqa: C901, PLR0914
 
     if changed:
         result["status"] = _get_status(module, pro)
+
+    _check_livepatch_status(module, result, to_enable)
 
     result["changed"] = changed
     module.exit_json(**result)  # pyright: ignore[reportUnknownMemberType]

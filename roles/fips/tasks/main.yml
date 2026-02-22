@@ -17,6 +17,18 @@
     enabled:
       - fips-updates
 
+- name: Warn about livepatch kernel status
+  when:
+    - fips_status == "latest"
+    - _fips_result.livepatch_status is defined
+    - "_fips_result.livepatch_status.status | default(_fips_result.livepatch_status) != 'supported'"
+
+  ansible.builtin.debug:
+    msg: |
+      WARNING: Livepatch kernel status is not supported:
+      {{ _fips_result.livepatch_status | to_nice_json }}
+
+
 - name: Ensure FIPS kernel and packages are removed
   when: fips_status == "absent"
   register: _fips_result
@@ -26,12 +38,13 @@
       - fips-updates
 
 - name: Check if reboot is required
-  register: fips_reboot_required
-  ansible.builtin.stat:
-    path: /var/run/reboot-required
+  changed_when: false
+  register: _fips_reboot_required
+  ansible.builtin.command:
+    cmd: pro system reboot-required
 
 - name: Schedule machine reboot if needed
-  when: fips_reboot_required.stat.exists
+  when: _fips_reboot_required.stdout != "no"
   notify:
     - Reboot machine
     - Validate FIPS is enabled
@@ -39,4 +52,4 @@
 
   changed_when: true
   ansible.builtin.debug:
-    msg: System will be rebooted due to FIPS changes
+    msg: "System will be rebooted (reboot-required: {{ _fips_reboot_required.stdout }})"

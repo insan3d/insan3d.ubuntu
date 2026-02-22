@@ -7,20 +7,33 @@
     cache_valid_time: "{{ apt_cache_validity_time | default(60 * 60 * 24) }}"
 
 - name: Ensure Ubuntu Pro client is attached
+  register: _pro_result
   insan3d.ubuntu.pro:
     state: attached
     token: "{{ pro_token }}"
     enabled: "{{ pro_services_enable }}"
     disabled: "{{ pro_services_disable }}"
 
+- name: Warn about livepatch kernel status
+  when:
+    - "'livepatch' in pro_services_enable or 'livepatch' in (_pro_result.status.services | map(attribute='name') | list)"
+    - _pro_result.livepatch_status is defined
+    - "_pro_result.livepatch_status.status | default(_pro_result.livepatch_status) != 'supported'"
+
+  ansible.builtin.debug:
+    msg: |
+      WARNING: Livepatch kernel status is not supported:
+      {{ _pro_result.livepatch_status | to_nice_json }}
+
 - name: Check if reboot is required
-  register: pro_reboot_required
-  ansible.builtin.stat:
-    path: /var/run/reboot-required
+  changed_when: false
+  register: _pro_reboot_required
+  ansible.builtin.command:
+    cmd: pro system reboot-required
 
 - name: Schedule machine reboot if needed
-  when: pro_reboot_required.stat.exists
+  when: _pro_reboot_required.stdout != "no"
   notify: Reboot machine
   changed_when: true
   ansible.builtin.debug:
-    msg: System will be rebooted due to Ubuntu Pro changes
+    msg: "System will be rebooted (reboot-required: {{ _pro_reboot_required.stdout }})"
