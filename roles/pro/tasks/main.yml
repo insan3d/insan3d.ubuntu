@@ -1,11 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/refs/heads/main/src/ansiblelint/schemas/tasks.json
 ---
-- name: Ensure Ubuntu Pro client is installed
-  ansible.builtin.apt:
-    package: ubuntu-advantage-tools
-    state: present
-    cache_valid_time: "{{ apt_cache_validity_time | default(60 * 60 * 24) }}"
-
 - name: Ensure Ubuntu Pro client is attached
   register: _pro_result
   insan3d.ubuntu.pro:
@@ -19,11 +13,11 @@
     - "'livepatch' in pro_services_enable or 'livepatch' in (_pro_result.status.services | map(attribute='name') | list)"
     - _pro_result.livepatch_status is defined
     - "_pro_result.livepatch_status.status | default(_pro_result.livepatch_status) != 'supported'"
-
   ansible.builtin.debug:
     msg: |
-      WARNING: Livepatch kernel status is not supported:
-      {{ _pro_result.livepatch_status | to_nice_json }}
+      WARNING: Livepatch kernel status is not supported.
+      Support: {{ (_pro_result.livepatch_status.Status[0].Supported if (_pro_result.livepatch_status.Status is defined and _pro_result.livepatch_status.Status | length > 0) else (_pro_result.livepatch_status.Supported | default('unknown'))) }}
+      Kernel: {{ (_pro_result.livepatch_status.Status[0].Kernel if (_pro_result.livepatch_status.Status is defined and _pro_result.livepatch_status.Status | length > 0) else (_pro_result.livepatch_status.Kernel | default('unknown'))) }}
 
 - name: Check if reboot is required
   changed_when: false

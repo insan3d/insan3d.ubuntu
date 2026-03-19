@@ -124,7 +124,8 @@ _ENABLED = ("enabled", "active", "on")
 def _execute(
     module: AnsibleModule,
     args: list[str],
-) -> tuple[dict[str, Any] | None, str, str]:
+    fail_on_rc: bool = True,
+) -> tuple[dict[str, Any] | None, str, str, int]:
     """
     Run a command and parse JSON output when available.
 
@@ -138,17 +139,17 @@ def _execute(
 
     rc, out, err = module.run_command(args)  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
 
-    if rc != 0:
+    if rc != 0 and fail_on_rc:
         module.fail_json(msg="command failed", rc=rc, stdout=out, stderr=err, cmd=args)  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType]
 
     if not out:
-        return None, out, err  # pyright: ignore[reportUnknownVariableType]
+        return None, out, err, rc  # pyright: ignore[reportUnknownVariableType]
 
     try:
-        return json.loads(out), out, err  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
+        return json.loads(out), out, err, rc  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
 
     except ValueError:
-        return {"raw": out}, out, err  # pyright: ignore[reportUnknownVariableType]
+        return {"raw": out}, out, err, rc  # pyright: ignore[reportUnknownVariableType]
 
 
 def _service_enabled(service: dict[str, Any]) -> bool:
@@ -226,7 +227,7 @@ def _get_status(module: AnsibleModule, pro: str) -> dict[str, Any] | None:
         Parsed C(pro status --wait --format=json) output.
     """
 
-    status, _, _ = _execute(module, [pro, "status", "--wait", "--format=json"])
+    status, _, _, _ = _execute(module, [pro, "status", "--wait", "--format=json"])
     return status
 
 
@@ -243,7 +244,13 @@ def _maybe_attach(
         The attach result.
     """
 
-    attach_result, _, _ = _execute(module, [pro, "attach", "--format=json", token])
+    # Double-check current status to avoid attaching an already-attached system.
+    current_status = _get_status(module, pro)
+    if _status_attached(current_status):
+        result["attach_result"] = {"skipped": "already-attached"}
+        return False
+
+    attach_result, _, _, _ = _execute(module, [pro, "attach", "--format=json", token])
     result["attach_result"] = attach_result
     return True
 
@@ -260,7 +267,7 @@ def _maybe_detach(
         The detach result.
     """
 
-    detach_result, _, _ = _execute(module, [pro, "detach", "--assume-yes", "--format=json"])
+    detach_result, _, _, _ = _execute(module, [pro, "detach", "--assume-yes", "--format=json"])
     result["detach_result"] = detach_result
     return True
 
@@ -278,10 +285,20 @@ def _maybe_enable_services(
         The enable result.
     """
 
-    enable_result, _, _ = _execute(
+    enable_result, out, err, rc = _execute(
         module,
         [pro, "enable", "--assume-yes", "--format=json", *to_enable],
+        fail_on_rc=False,
     )
+
+    # Handle harmless 'already enabled' response from `pro` which returns rc!=0
+    if isinstance(enable_result, dict) and enable_result.get("result") == "failure":
+        errors = enable_result.get("errors", [])
+        codes = {e.get("message_code") for e in errors if isinstance(e, dict)}
+        if codes and all(c == "service-already-enabled" for c in codes):
+            result["enable_result"] = enable_result
+            return False
+        module.fail_json(msg="enable command failed", rc=rc, stdout=out, stderr=err, cmd=[pro, "enable", "--assume-yes", "--format=json", *to_enable])  # pyright: ignore[reportUnknownArgumentType]
 
     result["enable_result"] = enable_result
     result["enabled"] = to_enable
@@ -301,10 +318,19 @@ def _maybe_disable_services(
         The disable result.
     """
 
-    disable_result, _, _ = _execute(
+    disable_result, out, err, rc = _execute(
         module,
         [pro, "disable", "--assume-yes", "--format=json", *to_disable],
+        fail_on_rc=False,
     )
+
+    if isinstance(disable_result, dict) and disable_result.get("result") == "failure":
+        errors = disable_result.get("errors", [])
+        codes = {e.get("message_code") for e in errors if isinstance(e, dict)}
+        if codes and all(c == "service-already-disabled" for c in codes):
+            result["disable_result"] = disable_result
+            return False
+        module.fail_json(msg="disable command failed", rc=rc, stdout=out, stderr=err, cmd=[pro, "disable", "--assume-yes", "--format=json", *to_disable])  # pyright: ignore[reportUnknownArgumentType]
 
     result["disable_result"] = disable_result
     result["disabled"] = to_disable
@@ -325,7 +351,7 @@ def _get_livepatch_status(
     if not canonical_livepatch:
         return None
 
-    livepatch_status, _, _ = _execute(module, [canonical_livepatch, "status", "--format=json"])  # pyright: ignore[reportUnknownArgumentType]
+    livepatch_status, _, _, _ = _execute(module, [canonical_livepatch, "status", "--format=json"])  # pyright: ignore[reportUnknownArgumentType]
     return livepatch_status
 
 
